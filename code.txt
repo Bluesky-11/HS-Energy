@@ -1,5 +1,5 @@
 {==================================================================
-        天道围猎·资金气数动量图 (V3 周期量能修正版 / 副图)
+                      天道围猎·资金气数动量图
 ==================================================================}
 
 {==================== 一、参数区 ====================}
@@ -283,27 +283,32 @@ SZ_MA_DN    : IF(SZ_DN_ST OR SZ_DN_PRV, SZ_MA_VAL, DRAWNULL), COLORFF0077, LINET
 TMC_OBS_LINE: TMC_OBSERVE, COLORFFFFFF, LINETHICK2;
 ZERO_LINE   : 0, COLOR777777, DOTLINE;
 
-{==================== 六、四角战术面板 ====================}
+{==================== 六、四角战术面板 (全透明无遮挡版) ====================}
 IS_LAST      := ISLASTBAR;
+
+{ --- 四季状态提示 (直接在顶部纯文字高亮渲染，无背景底衬) --- }
 ISL_SPRING   := IS_LAST AND SUB_SPRING;
+DRAWTEXT_FIX(ISL_SPRING AND NOT(VOL_WEAK), 0.01, 0.01, 0, '气数四季: 少阳·春 (生发主攻)'), COLOR00FFFF;
+DRAWTEXT_FIX(ISL_SPRING AND VOL_WEAK,      0.01, 0.01, 0, '气数四季: 少阳·春 (无量虚增)'), COLOR00CCCC;
+DRAWTEXT_FIX(IS_LAST AND SUB_SUMMER,       0.01, 0.01, 0, '气数四季: 老阳·夏 (阳极落袋)'), COLOR00AAFF;
+DRAWTEXT_FIX(IS_LAST AND SUB_AUTUMN,       0.01, 0.01, 0, '气数四季: 少阴·秋 (覆巢观望)'), COLOR888888;
+DRAWTEXT_FIX(IS_LAST AND SUB_WINTER,       0.01, 0.01, 0, '气数四季: 老阴·冬 (暗流潜伏)'), COLORFF00FF;
 
-DRAWTEXT_FIX(ISL_SPRING AND NOT(VOL_WEAK), 0.01, 0.02, 0, '气数四季: 少阳·春 (生发主攻)'), COLOR00FFFF;
-DRAWTEXT_FIX(ISL_SPRING AND VOL_WEAK,      0.01, 0.02, 0, '气数四季: 少阳·春 (无量虚增)'), COLOR00CCCC;
-DRAWTEXT_FIX(IS_LAST AND SUB_SUMMER,       0.01, 0.02, 0, '气数四季: 老阳·夏 (阳极落袋)'), COLOR00AAFF;
-DRAWTEXT_FIX(IS_LAST AND SUB_AUTUMN,       0.01, 0.02, 0, '气数四季: 少阴·秋 (覆巢观望)'), COLOR888888;
-DRAWTEXT_FIX(IS_LAST AND SUB_WINTER,       0.01, 0.02, 0, '气数四季: 老阴·冬 (暗流潜伏)'), COLORFF00FF;
+{ --- 右上角暗流控盘 --- }
+DRAWTEXT_FIX(IS_LAST, 0.75, 0.01, 0, '暗流控盘:'), COLORFFFFFF;
+DRAWNUMBER_FIX(IS_LAST, 0.82, 0.01, 2, DARK_FLOW), COLORYELLOW;
 
-DRAWTEXT_FIX(IS_LAST, 0.75, 0.02, 0, '暗流控盘:'), COLORFFFFFF;
-DRAWNUMBER_FIX(IS_LAST, 0.82, 0.02, 2, DARK_FLOW), COLORYELLOW;
+{ --- 左下角起爆点 --- }
+DRAWTEXT_FIX(IS_LAST, 0.01, 0.97, 0, '距起爆点:'), COLORFFFFFF;
+DRAWNUMBER_FIX(IS_LAST AND HAS_FLY, 0.09, 0.97, 0, BARS_TO_FLY), COLOR00FFFF;
+DRAWTEXT_FIX(IS_LAST AND HAS_FLY, 0.15, 0.97, 0, '根'), COLORFFFFFF;
+DRAWTEXT_FIX(IS_LAST AND NOT(HAS_FLY), 0.09, 0.97, 0, '--'), COLOR888888;
 
-DRAWTEXT_FIX(IS_LAST, 0.01, 0.99, 0, '距起爆点:'), COLORFFFFFF;
-DRAWNUMBER_FIX(IS_LAST AND HAS_FLY, 0.09, 0.99, 0, BARS_TO_FLY), COLOR00FFFF;
-DRAWTEXT_FIX(IS_LAST AND HAS_FLY, 0.15, 0.99, 0, '根'), COLORFFFFFF;
-DRAWTEXT_FIX(IS_LAST AND NOT(HAS_FLY), 0.09, 0.99, 0, '--'), COLOR888888;
+{ --- 中间挤压状态 --- }
+DRAWTEXT_FIX(IS_LAST AND SQZ_FIRE, 0.23, 0.97, 0, '【冬至火花·点火】'), COLORFF00FF;
+DRAWTEXT_FIX(IS_LAST AND IS_SQUEEZE AND NOT(SQZ_FIRE), 0.23, 0.97, 0, '【极阴挤压·蓄势】'), COLOR00FFFF;
+DRAWTEXT_FIX(IS_LAST AND NOT(IS_SQUEEZE), 0.23, 0.97, 0, '【气数平稳】'), COLOR888888;
 
-DRAWTEXT_FIX(IS_LAST AND SQZ_FIRE, 0.23, 0.99, 0, '【冬至火花·点火】'), COLORFF00FF;
-DRAWTEXT_FIX(IS_LAST AND IS_SQUEEZE AND NOT(SQZ_FIRE), 0.23, 0.99, 0, '【极阴挤压·蓄势】'), COLOR00FFFF;
-DRAWTEXT_FIX(IS_LAST AND NOT(IS_SQUEEZE), 0.23, 0.99, 0, '【气数平稳】'), COLOR888888;
-
-DRAWTEXT_FIX(IS_LAST, 0.75, 0.99, 0, '多空能量比:'), COLORFFFFFF;
-DRAWNUMBER_FIX(IS_LAST, 0.82, 0.99, 2, ENERGY_RATIO), COLORCYAN;
+{ --- 右下角多空能量比 --- }
+DRAWTEXT_FIX(IS_LAST, 0.73, 0.97, 0, '多空能量比:'), COLORFFFFFF;
+DRAWNUMBER_FIX(IS_LAST, 0.82, 0.97, 2, ENERGY_RATIO), COLORCYAN;
