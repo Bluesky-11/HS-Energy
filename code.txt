@@ -1,5 +1,5 @@
 {==================================================================
-                       天道围猎·资金气数动量图
+        天道围猎·资金气数动量图 (MA20 & MA60 适配版)
 ==================================================================}
 
 {==================== 一、参数区 ====================}
@@ -10,7 +10,7 @@ SMOOTH_K      := 6.8;
 ENERGY_PERIOD := 66;
 EX_RATIO_CAP  := 8;
 EPS           := 0.0001;
-MA10_TOL      := 0.985;    {原MA20容差适配改为MA10}
+MA20_TOL      := 0.985;    {MA20容差系数}
 CORE_TOL      := 0.982;
 EXIT_TOL      := 0.945;
 SEASON_BAR_W  := 0.35;
@@ -43,11 +43,11 @@ MAG_HI        := 2.0;
 { --- 时间/外推 --- }
 TRD_MIN       := 240;      {日内交易分钟数}
 DAY_PRD       := 5;        {日线对应的PERIOD值}
-BAR_LEN_INTRA := 1;        
+BAR_LEN_INTRA := 1;          
 OPEN_WAIT     := 40;       {开盘后多少分钟内不确认最后一根K线的信号}
 
 { --- 预热 --- }
-WARM_N        := 40;       {买点预热根数}
+WARM_N        := 60;       {买点预热根数}
 SQZ_WARM      := 20;       {挤压判定所需最小根数}
 
 { --- 挤压 --- }
@@ -99,20 +99,27 @@ PATH_SUM := IF(N_BAR >= 10, SUM(ABS(C - PC1), 10), SUM(ABS(C - PC1), 0));
 ER_SUB   := IF(PATH_SUM < EPS, 0.5, MIN(NET_CHG / (PATH_SUM + EPS), 1));
 W_ER     := EMA(ER_SUB, 5);
 
-EXPL_TH  := 1.85 - W_ER * 0.60;
+{ --- 早盘时间阻尼 --- }
+TIME_DAMP   := IF(IN_SESS AND FROMOPEN < 60, FROMOPEN / 60, 1.0);
 
 {==================== 二、暗流控盘 & CZB 动量 ENGINE ====================}
-EXPL_RATIO := MIN(AMT_PRED_RAW / (AMT_MA_SAFE + EPS), EX_RATIO_CAP);
-EXPL_GAP   := EXPL_RATIO - EXPL_TH;
+EXPL_TH_BASE := 1.85 - W_ER * 0.60;
+EXPL_RATIO   := MIN(AMT_PRED_RAW / (AMT_MA_SAFE + EPS), EX_RATIO_CAP);
+EXPL_GAP     := EXPL_RATIO - EXPL_TH_BASE;
 
 SAFE_EXP_IN := MAX(-50, MIN(50, -SMOOTH_K * EXPL_GAP));
 EXPL_MULT   := 1.28 + 1.22 / (1 + EXP(SAFE_EXP_IN));
 
-K_RANGE   := MAX(H - L, MAX(C * 0.002, ABS(C - PC1)));
-INTRA_DIR := ((C - L) - (H - C)) / K_RANGE;
-REAL_DIR  := IF(ABS(INTRA_DIR) < 0.01, IF(C > PC1, 0.6, IF(C < PC1, -0.6, 0)), INTRA_DIR);
+K_RANGE     := MAX(H - L, MAX(C * 0.002, ABS(C - PC1)));
+INTRA_DIR   := ((C - L) - (H - C)) / K_RANGE;
+REAL_DIR    := IF(ABS(INTRA_DIR) < 0.01, IF(C > PC1, 0.6, IF(C < PC1, -0.6, 0)), INTRA_DIR);
 
-DARK_FLOW_RAW := REAL_DIR * (0.65 + 0.35 * EXPL_RATIO);
+{ MA20价格乖离率洗盘免责 }
+MA20_FAST   := EMA(C, 20);
+C_BIAS_MA   := (C - MA20_FAST) / (MA20_FAST + EPS);
+SZ_DOWN_COEF:= IF(C_BIAS_MA > 0.01, 0.65, 0.85);
+
+DARK_FLOW_RAW := IF(C >= PC1, REAL_DIR * (0.65 + 0.35 * EXPL_RATIO), REAL_DIR * (0.65 + 0.35 * EXPL_RATIO) * SZ_DOWN_COEF);
 DARK_FLOW     := EMA(DARK_FLOW_RAW, 3);
 
 CZB_DIR := IF(DARK_FLOW > DARK_TH, 1, IF(DARK_FLOW < -DARK_TH, -1, IF(C >= PC1, 0.5, -0.5)));
@@ -127,9 +134,13 @@ SZ_VAL   := EMA(W_ER * SZ_OSC_F + (1 - W_ER) * SZ_OSC_S, 5) * SZ_SCALE;
 
 {==================== 三、导数、挤压与自适应观察线 ====================}
 SZ_PRV  := IF(N_BAR > 1, REF(SZ_VAL, 1), SZ_VAL);
-D1_RAW  := SZ_VAL - SZ_PRV;
+D1_RAW  := (SZ_VAL - SZ_PRV) * TIME_DAMP;
 D1_PRV  := IF(N_BAR > 1, REF(D1_RAW, 1), D1_RAW);
 D2_ACC  := D1_RAW - D1_PRV;
+
+PRV_D2_ACC  := IF(N_BAR > 2, REF(D2_ACC, 1), 0);
+ACC_BOOST   := MAX(0, PRV_D2_ACC);
+EXPL_TH     := EXPL_TH_BASE - MIN(0.25, ACC_BOOST * 0.5);
 
 LEAD_RAW    := (D1_RAW + D2_ACC * LEAD_D2W) * (LEAD_GAIN * LEAD_DAMP);
 LEAD_SMOOTH := EMA(LEAD_RAW, LEAD_SM_LEN);
@@ -138,7 +149,7 @@ LEAD_FACTOR := LEAD_RAW * LEAD_ALPHA + LEAD_SMOOTH * (1 - LEAD_ALPHA);
 SZ_MA_VAL := EMA(SZ_VAL + LEAD_FACTOR * LEAD_MIX, SZ_MA_LEN);
 
 SQZ_STD   := IF(N_BAR >= SQZ_N, STD(SZ_VAL, SQZ_N),
-                 SQRT(MAX(SUM(SZ_VAL * SZ_VAL, 0) / N_BAR - POW(SUM(SZ_VAL, 0) / N_BAR, 2), 0)));
+                SQRT(MAX(SUM(SZ_VAL * SZ_VAL, 0) / N_BAR - POW(SUM(SZ_VAL, 0) / N_BAR, 2), 0)));
 SQZ_MID   := IF(N_BAR >= SQZ_N, MA(SZ_VAL, SQZ_N), SUM(SZ_VAL, 0) / N_BAR);
 SQZ_WIDTH := SQZ_STD * 2 / (ABS(SQZ_MID) + 0.01);
 SQZ_MIN   := IF(N_BAR >= SQZ_LB, LLV(SQZ_WIDTH, SQZ_LB), LLV(SQZ_WIDTH, 0));
@@ -158,7 +169,7 @@ TMC_BASE_S := EMA(SZ_VAL, 25);
 TMC_BASE   := W_ER * TMC_BASE_F + (1 - W_ER) * TMC_BASE_S;
 
 TMC_PRV := IF(N_BAR > 1, REF(TMC_BASE, 1), TMC_BASE);
-TMC_D1  := TMC_BASE - TMC_PRV;
+TMC_D1  := (TMC_BASE - TMC_PRV) * TIME_DAMP;
 TMC_D1P := IF(N_BAR > 1, REF(TMC_D1, 1), TMC_D1);
 TMC_D2  := TMC_D1 - TMC_D1P;
 
@@ -166,7 +177,7 @@ TMC_LEAD_RAW := (TMC_D1 + TMC_D2 * TMC_D2W) * (TMC_GAIN * TMC_DAMP);
 TMC_LEAD_FAC := TMC_LEAD_RAW * TMC_ALPHA + EMA(TMC_LEAD_RAW, TMC_LD_SM_LEN) * (1 - TMC_ALPHA);
 TMC_OBSERVE  := EMA(TMC_BASE + TMC_LEAD_FAC, TMC_OUT_LEN);
 
-{==================== 四、乘风起爆与主图条件镜像 (已适配MA10与LLV50) ====================}
+{==================== 四、乘风起爆与主图条件镜像 (已适配MA20/MA60与LLV50) ====================}
 IS_EXPL     := AMT_PRED_RAW > AMT_MA_SAFE * EXPL_TH;
 CF_TREND_OK := SZ_MA_VAL > TMC_OBSERVE;
 
@@ -179,10 +190,10 @@ CF_FLY_SIGNAL := CF_TREND_OK AND QUIET_PRV AND SZ_VAL > 0 AND IS_EXPL AND DARK_F
 HAS_FLY     := SUM(CF_FLY_SIGNAL, 0) > 0;
 BARS_TO_FLY := IF(HAS_FLY, BARSLAST(CF_FLY_SIGNAL), 0);
 
-{ 原MA20替换为MA10 }
-MA10_SUB := EMA(C, 10);
-MA10_P5  := IF(N_BAR > 5, REF(MA10_SUB, 5), MA10_SUB);
-SLP_10   := (MA10_SUB - MA10_P5) / 5 / (MA10_SUB + EPS);
+{ 替换为 MA20 架构 }
+MA20_SUB := EMA(C, 20);
+MA20_P5  := IF(N_BAR > 5, REF(MA20_SUB, 5), MA20_SUB);
+SLP_20   := (MA20_SUB - MA20_P5) / 5 / (MA20_SUB + EPS);
 
 V_MA      := IF(N_BAR >= V_DYS_M, MA(V_PRED, V_DYS_M), SUM(V_PRED, 0) / N_BAR);
 V_MA_SAFE := MAX(V_MA, V_PRED * 0.15);
@@ -191,14 +202,13 @@ LOW_VOL   := V_PRED < V_MA5 * 0.85 OR V_PRED < V_MA_SAFE * 0.80;
 
 LLV3  := IF(N_BAR >= 3, LLV(L, 3), LLV(L, 0));
 HHV3  := IF(N_BAR >= 3, HHV(H, 3), HHV(H, 0));
-{ 原LLV60替换为LLV50 }
 LLV50 := IF(N_BAR >= 50, LLV(L, 50), LLV(L, 0));
 
 RAW_EXHAUSTION := ((HHV3 - LLV3) / (LLV3 + EPS) * 100 < EXH_BAND OR ABS(C - O) / (H - L + EPS) < EXH_BODY)
-                  AND LOW_VOL
-                  AND C >= MA10_SUB * MA10_TOL AND C <= MA10_SUB * EXH_UP
-                  AND (C - LLV50) / (LLV50 + EPS) * 100 < EXH_LOW_PCT
-                  AND (SLP_10 > -0.0001 OR C > MA10_SUB);
+                 AND LOW_VOL
+                 AND C >= MA20_SUB * MA20_TOL AND C <= MA20_SUB * EXH_UP
+                 AND (C - LLV50) / (LLV50 + EPS) * 100 < EXH_LOW_PCT
+                 AND (SLP_20 > -0.0001 OR C > MA20_SUB);
 
 HHV16       := IF(N_BAR >= 16, HHV(H, 16), HHV(H, 0));
 DONCHIAN_H  := IF(N_BAR > 1, REF(HHV16, 1), HHV16);
@@ -209,21 +219,21 @@ TR_MA24     := IF(N_BAR >= 24, MA(TR_BASE_SUB, 24), TR_AVG);
 TR_MA40     := IF(N_BAR >= 40, MA(TR_BASE_SUB, 40), TR_AVG);
 ATR_SUB     := W_ER * TR_MA12 + (1 - W_ER) * (0.6 * TR_MA24 + 0.4 * TR_MA40);
 
-RAW_BUY_SUB := CROSS(C, DONCHIAN_H) AND (C - DONCHIAN_H) / (ATR_SUB + EPS) > BRK_PWR AND C > MA10_SUB * MA10_TOL;
-KC_UP_SUB   := MA10_SUB + KC_MULT * ATR_SUB;
-BB_UP_SUB   := MA10_SUB + BB_F * STD(C, 10);   {布林带周期同步改为10}
+RAW_BUY_SUB := CROSS(C, DONCHIAN_H) AND (C - DONCHIAN_H) / (ATR_SUB + EPS) > BRK_PWR AND C > MA20_SUB * MA20_TOL;
+KC_UP_SUB   := MA20_SUB + KC_MULT * ATR_SUB;
+BB_UP_SUB   := MA20_SUB + BB_F * STD(C, 20);   {布林带同步调整为20周期}
 AMT_PRV     := IF(N_BAR > 1, REF(AMOUNT, 1), AMOUNT);
-BB_BRK_SUB  := N_BAR >= 10 AND CROSS(C, BB_UP_SUB) AND AMT_PRED_RAW > AMT_PRV * 0.7;
+BB_BRK_SUB  := N_BAR >= 20 AND CROSS(C, BB_UP_SUB) AND AMT_PRED_RAW > AMT_PRV * 0.7;
 
 BUY_T_SUB   := RAW_BUY_SUB OR CROSS(C, KC_UP_SUB) OR BB_BRK_SUB;
 
 OPEN_SAFE   := NOT(ISLASTBAR) OR NOT(IN_SESS) OR FROMOPEN > OPEN_WAIT;
-CORE_SUB    := BUY_T_SUB AND C > MA10_SUB * CORE_TOL;
+CORE_SUB    := BUY_T_SUB AND C > MA20_SUB * CORE_TOL;
 FLT_SUB     := SZ_VAL > FLT_SZ OR DARK_FLOW > FLT_DARK OR CF_FLY_SIGNAL;
 
 FINAL_B_SUB := CORE_SUB AND FLT_SUB AND OPEN_SAFE AND WARM_OK;
 
-SUB_EXIT_COND := CROSS(MA10_SUB, C) OR C < MA10_SUB * EXIT_TOL;
+SUB_EXIT_COND := CROSS(MA20_SUB, C) OR C < MA20_SUB * EXIT_TOL;
 LAST_B      := IF(SUM(FINAL_B_SUB, 0) > 0, BARSLAST(FINAL_B_SUB), 9999);
 LAST_X      := IF(SUM(SUB_EXIT_COND, 0) > 0, BARSLAST(SUB_EXIT_COND), 9999);
 SUB_HOLD    := LAST_B < LAST_X;
@@ -261,11 +271,11 @@ SZ_DN_ST    := NOT(SZ_UP_ST);
 SZ_UP_PRV   := IF(N_BAR > 1, REF(SZ_UP_ST, 1), SZ_UP_ST);
 SZ_DN_PRV   := IF(N_BAR > 1, REF(SZ_DN_ST, 1), SZ_DN_ST);
 SZ_MA_LINE  : SZ_MA_VAL, NODRAW;
-SZ_MA_UP    : IF(SZ_UP_ST OR SZ_UP_PRV, SZ_MA_VAL, DRAWNULL), COLOR00FFAA, LINETHICK2;
+SZ_MA_UP    : IF(SZ_UP_ST OR SZ_UP_PRV, SZ_MA_VAL, DRAWNULL), COLORRED, LINETHICK2;
 SZ_MA_DN    : IF(SZ_DN_ST OR SZ_DN_PRV, SZ_MA_VAL, DRAWNULL), COLORFF0077, LINETHICK2;
 
-TMC_OBS_LINE: TMC_OBSERVE, COLORFFFFFF, LINETHICK2;
-ZERO_LINE   : 0, COLOR777777, DOTLINE;
+TMC_OBS_LINE: TMC_OBSERVE, COLOR00FFAA, LINETHICK2;
+ZERO_LINE   : 0, COLOR666666, DOTLINE;
 
 {==================== 六、四角战术面板 ====================}
 IS_LAST     := ISLASTBAR;
