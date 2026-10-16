@@ -3,7 +3,7 @@
    - 四季状态(春夏秋冬)/战术节点/止损/持仓 全部来自主图 SCALPEL AMBUSH 的同一套逻辑
    - 副图柱体高度与曲线仍使用本图自己的"成交额动量引擎"(SZ_VAL / SZ_MA / TMC)
    - 命名约定: 主图逻辑中与副图引擎重名的变量一律加 M_ 前缀
-       M_DARK=主图暗流  M_SZ_MA/M_TMC_OBS=主图超前线  M_CROSS_DN=主图死叉  M_FLY=主图起爆
+        M_DARK=主图暗流  M_SZ_MA/M_TMC_OBS=主图超前线  M_CROSS_DN=主图死叉  M_FLY=主图起爆
    - 主图公式里的买入条件、止损棘轮、四季判定保持原样, 不要在这里单独改动阈值
 ==================================================================}
 
@@ -87,7 +87,7 @@ IS_DAY_BAR := PERIOD = DAY_PRD;
 IS_MIN_BAR := PERIOD <= 3 OR PERIOD = 7 OR PERIOD = 8;
 IS_HTF     := NOT(IS_DAY_BAR OR IS_MIN_BAR);
 IN_SESS    := FROMOPEN > 0 AND FROMOPEN < TRD_MIN;
-IS_PRED    := ISLASTBAR AND IN_SESS AND IS_DAY_BAR;            {实时日线最后一根K}
+IS_PRED    := ISLASTBAR AND IN_SESS AND IS_DAY_BAR;             {实时日线最后一根K}
 IS_LIVE_ANY:= ISLASTBAR AND IN_SESS AND (IS_DAY_BAR OR IS_MIN_BAR);
 PRED_F     := IF(IS_PRED, TRD_MIN / MAX(FROMOPEN, VP_MIN), 1);
 
@@ -419,19 +419,23 @@ ZERO_LINE   : 0, COLOR666666, DOTLINE;
 {==================== 七、四角战术面板 ====================}
 IS_LAST     := ISLASTBAR;
 
-{ 左下: 气数四季 (主图四象) }
+{ 左上: 多空能量比 (已由右下移至此处) }
+DRAWTEXT_FIX(IS_LAST, 0.01, 0.01, 0, '多空能量比:'), COLORFFFFFF;
+DRAWNUMBER_FIX(IS_LAST, 0.09, 0.01, 2, ENERGY_RATIO), COLORCYAN;
+
+{ 右下: 气数四季 (主图四象 - 已由左下移至此处) }
 ISL_SPRING   := IS_LAST AND IS_SPRING;
-DRAWTEXT_FIX(ISL_SPRING AND NOT(VOL_WEAK), 0.01, 0.01, 0, '气数四季: 少阳·春 (生发主攻)'), COLOR00FFFF;
-DRAWTEXT_FIX(ISL_SPRING AND VOL_WEAK,      0.01, 0.01, 0, '气数四季: 少阳·春 (无量虚增)'), COLOR00CCCC;
-DRAWTEXT_FIX(IS_LAST AND IS_SUMMER,        0.01, 0.01, 0, '气数四季: 老阳·夏 (趋势锁盈)'), COLOR00AAFF;
-DRAWTEXT_FIX(IS_LAST AND IS_AUTUMN,        0.01, 0.01, 0, '气数四季: 少阴·秋 (覆巢观望)'), COLOR888888;
-DRAWTEXT_FIX(IS_LAST AND IS_WINTER,        0.01, 0.01, 0, '气数四季: 老阴·冬 (暗流潜伏)'), COLORFF00FF;
+DRAWTEXT_FIX(ISL_SPRING AND NOT(VOL_WEAK), 0.75, 0.01, 0, '气数四季: 少阳·春 (生发主攻)'), COLOR00FFFF;
+DRAWTEXT_FIX(ISL_SPRING AND VOL_WEAK,      0.75, 0.01, 0, '气数四季: 少阳·春 (无量虚增)'), COLOR00CCCC;
+DRAWTEXT_FIX(IS_LAST AND IS_SUMMER,        0.75, 0.01, 0, '气数四季: 老阳·夏 (趋势锁盈)'), COLOR00AAFF;
+DRAWTEXT_FIX(IS_LAST AND IS_AUTUMN,        0.75, 0.01, 0, '气数四季: 少阴·秋 (覆巢观望)'), COLOR888888;
+DRAWTEXT_FIX(IS_LAST AND IS_WINTER,        0.75, 0.01, 0, '气数四季: 老阴·冬 (暗流潜伏)'), COLORFF00FF;
 
-{ 右下: 暗流控盘 }
-DRAWTEXT_FIX(IS_LAST, 0.75, 0.01, 0, '暗流控盘:'), COLORFFFFFF;
-DRAWNUMBER_FIX(IS_LAST, 0.82, 0.01, 2, DARK_FLOW), COLORYELLOW;
+{ 右下底行: 暗流控盘 }
+DRAWTEXT_FIX(IS_LAST, 0.75, 0.97, 0, '暗流控盘:'), COLORFFFFFF;
+DRAWNUMBER_FIX(IS_LAST, 0.82, 0.97, 2, DARK_FLOW), COLORYELLOW;
 
-{ 顶行: 起爆 / 挤压 / 能量比 }
+{ 顶行左侧/中部: 起爆 / 挤压 }
 DRAWTEXT_FIX(IS_LAST, 0.01, 0.97, 0, '距起爆点:'), COLORFFFFFF;
 DRAWNUMBER_FIX(IS_LAST AND HAS_FLY, 0.09, 0.97, 0, BARS_TO_FLY), COLOR00FFFF;
 DRAWTEXT_FIX(IS_LAST AND HAS_FLY, 0.15, 0.97, 0, '根'), COLORFFFFFF;
@@ -440,6 +444,3 @@ DRAWTEXT_FIX(IS_LAST AND NOT(HAS_FLY), 0.09, 0.97, 0, '--'), COLOR888888;
 DRAWTEXT_FIX(IS_LAST AND SQZ_FIRE, 0.23, 0.97, 0, '【冬至火花·点火】'), COLORFF00FF;
 DRAWTEXT_FIX(IS_LAST AND IS_SQUEEZE AND NOT(SQZ_FIRE), 0.23, 0.97, 0, '【极阴挤压·蓄势】'), COLOR00FFFF;
 DRAWTEXT_FIX(IS_LAST AND NOT(IS_SQUEEZE), 0.23, 0.97, 0, '【气数平稳】'), COLOR888888;
-
-DRAWTEXT_FIX(IS_LAST, 0.75, 0.97, 0, '多空能量比:'), COLORFFFFFF;
-DRAWNUMBER_FIX(IS_LAST, 0.82, 0.97, 2, ENERGY_RATIO), COLORCYAN;
