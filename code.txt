@@ -1,5 +1,5 @@
 {==================================================================
-                    天道围猎·量动能气数副图
+                     天道围猎·量动能气数副图
 ==================================================================}
 
 {================ 一、周期判定 ================}
@@ -707,7 +707,7 @@ GATE_NOT_PASS := NOT(GATE_OK);
 GATE_WAIT_ST  := GATE_OK AND NOT(WARM_OK);
 GATE_OK_ST    := GATE_OK AND WARM_OK;
 
-DRAWTEXT_FIX(IS_LAST, 0.01, 0.01, 0, '【能量比】'), COLOR00CCFF;
+DRAWTEXT_FIX(IS_LAST, 0.01, 0.01, 0, '【多空能量比】'), COLOR00CCFF;
 DRAWNUMBER_FIX(IS_LAST, 0.09, 0.01, 0, ENERGY_RATIO), COLOR00FFFF;
 
 DRAWTEXT_FIX(IS_LAST, 0.16, 0.01, 0, '【主趋势角度】'), COLOR00CCFF;
