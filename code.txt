@@ -1,9 +1,8 @@
 {==================================================================
-                     天道围猎副图·量动能气数
+                    天道围猎副图·动量能气数
 ==================================================================}
 
 {================ 一、周期判定 ================}
-{ 若平台 PERIOD 编号与此不同，请改 DAY_PRD / MIN_MAX；DBG_PRD=1 可在面板显示当前 PERIOD }
 DAY_PRD    := 3;
 MIN_MAX    := 4;
 
@@ -18,14 +17,15 @@ STATE_FLOW   := 0;
 DC_SRC       := 1;
 RATCHET_FULL := 1;
 PANEL_ON     := 1;
-SYNC_MAIN    := 1;
 DBG_PRD      := 0;
 CURVE_ON     := 1;
 TOP_BLOCK    := 1;
 TRY_GATE     := 1;
 SQZ_FIX      := 1;
 MARK_ON      := 0;    {1=显示结构/共振/起爆标记；0=隐藏}
-REARM_ON     := 1;    {新增：须与主图保持一致。1=MA8破位出场后信号仍成立时允许再次入场}
+GC_MARK      := 1;    {1=显示 SZ_GC 上穿柱与文字(不受 MARK_ON 控制，与旧版一致)}
+REARM_ON     := 1;    {1=MA8破位出场后信号仍成立时允许再次入场}
+BUY_CD       := 3;    {与主图一致：N根内已出现过买入候选则不再触发新买点}
 
 {================ 三、MA30角度参数 ================}
 ANG_K    := 1;
@@ -34,18 +34,16 @@ ANG_UP   := 20;
 ANG_STR  := 25;
 ANG_VST  := 35;
 
-{================ 四、策略参数 ================}
-{ 注意：以下三项直接影响 BUY_SIG / HOLD_ST / 四象配色，必须与主图一致，否则副图柱色与主图K线状态对不上。
-  当前副图值 → 主图值：V_SHORT 5→3，HOLD_MAX 240→360，TREND_MIN 55→50。请二选一统一。 }
+{================ 四、策略参数（严格对齐主图） ================}
 N_TRK        := 10;
 ATR_X        := 1.06;
 ATR_XS       := 1.48;
 V_DYS        := IF(IS_MIN_BAR, 5, 15);
-V_SHORT      := 5;
+V_SHORT      := 3;
 SHR_R        := 0.85;
 BB_F         := 2.0;
 BB_N         := 5;
-HOLD_MAX     := 240;
+HOLD_MAX     := 360;
 M_PER        := 8;
 M_PER2       := 30;
 EPS          := 0.0001;
@@ -59,7 +57,7 @@ SZ_STD_N     := IF(IS_MIN_BAR, 15, 80);
 WARM_N       := MAX(SZ_STD_N + 20, 60);
 OPEN_BLOCK   := 40;
 
-{引擎窗口}
+{引擎窗口与阈值（严格对齐主图）}
 ER_N       := 10;
 ER_SM      := 5;
 ER_NEUTRAL := 0.5;
@@ -72,8 +70,8 @@ DI_S       := 20;
 SZ_E1      := 5;
 SZ_E2      := 15;
 SZ_E3      := 45;
-TMC_F      := 5;     {【灵敏优化】由7缩短为5}
-TMC_S      := 20;    {【灵敏优化】由25缩短为20}
+TMC_F      := 7;
+TMC_S      := 25;
 SM_N       := 2;
 KC_MULT    := 1.45;
 GAP_PCT    := 0.5;
@@ -87,7 +85,7 @@ LEAD_PHI   := 0.618;
 LEAD_K     := 2.95;
 LEAD_GAIN  := 1.25;
 TMC_PHI    := 0.5;
-TMC_K      := 2.50;    {【灵敏优化】由2.35调大至2.50，增强反应}
+TMC_K      := 2.35;
 TMC_MIX    := 0.82;
 TRD_MIN    := 240;
 VP_MIN     := 30;
@@ -129,7 +127,7 @@ DIV_MAXAGE := 60;
 DIV_BOUNCE := 1.0;
 ADX_TH     := 20;
 ER_SWITCH  := 0.6;
-TREND_MIN  := 55;
+TREND_MIN  := 50;
 TREND_FLAT := 0.9999;
 BASE_N     := 60;
 NEAR_N     := 20;
@@ -151,9 +149,9 @@ TOP_CHG    := 1.5;
 TOP_DROP   := -3;
 TOP_SHADOW := 0.30;
 TOP_POS    := 0.70;
-TOPD_VOL   := 1.5;     { 新增：顶背离放量倍数（与主图对齐） }
+TOPD_VOL   := 1.5;
 
-{副图成交额动量引擎参数}
+{副图成交额动量引擎参数（严格对齐主图）}
 VOL_DAYS      := IF(IS_MIN_BAR, 4, 10);
 WEIGHT        := 3.55;
 SMOOTH_K      := 6.8;
@@ -168,24 +166,23 @@ LEAD_D2W      := 0.5;
 LEAD_RAW_W    := 0.70;
 LEAD_MIX      := 1.15;
 SZ_SCALE      := 0.69;
-TMC_GAIN      := 2.50;    {【灵敏优化】由2.35调大至2.50}
-TMC_DAMP      := 0.90;    {【灵敏优化】阻尼略调小以增加灵敏度}
-TMC_D2W       := 0.5;     {【灵敏优化】由0.4调大至0.5}
-TMC_RAW_W     := 0.55;    {【灵敏优化】由0.70调小，让平滑成份更灵活}
+TMC_GAIN      := 2.35;
+TMC_DAMP      := 0.85;
+TMC_D2W       := 0.5;
+TMC_RAW_W     := 0.70;
 LDV_GAIN      := 2.95;
 
-{同步参数组（注意：SYNC_MAIN=1 分支中 TMV_F/TMV_S/TMC_OUT_LEN/TMC_LD_SM_LEN 已含灵敏优化，与主图 8/28/6/5 并不相同）}
-OSC_F1        := IF(SYNC_MAIN = 1, 6, 5);
-OSC_F2        := IF(SYNC_MAIN = 1, 14, 12);
-OSC_S1        := IF(SYNC_MAIN = 1, 12, 10);
-OSC_S2        := IF(SYNC_MAIN = 1, 28, 24);
-OSC_OUT       := IF(SYNC_MAIN = 1, 6, 5);
-TMV_F         := IF(SYNC_MAIN = 1, 6, 5);     {【灵敏优化】由8减小至6}
-TMV_S         := IF(SYNC_MAIN = 1, 22, 20);   {【灵敏优化】由28减小至22}
-LEAD_SM_LEN   := IF(SYNC_MAIN = 1, 3, 2);
-SZ_MA_LEN     := IF(SYNC_MAIN = 1, 5, 3);
-TMC_LD_SM_LEN := IF(SYNC_MAIN = 1, 3, 2);     {【灵敏优化】由5缩短为3}
-TMC_OUT_LEN   := IF(SYNC_MAIN = 1, 4, 2);     {【灵敏优化】输出平滑由6缩短为4}
+OSC_F1        := 6;
+OSC_F2        := 14;
+OSC_S1        := 12;
+OSC_S2        := 28;
+OSC_OUT       := 6;
+TMV_F         := 8;
+TMV_S         := 28;
+LEAD_SM_LEN   := 3;
+SZ_MA_LEN     := 5;
+TMC_LD_SM_LEN := 5;
+TMC_OUT_LEN   := 6;
 
 MAG_FLOOR     := 0.25;
 MAG_LO        := 0.5;
@@ -205,11 +202,10 @@ DRV_HI        := 1.5;
 SQZ_EPS       := 0.01;
 PCT_STD_N     := 20;
 
-{原硬编码阈值，统一提取为参数（默认值与原版一致）}
 ACC_POS_MAX   := 0.45;
 ACC_DARK_N    := 10;
 ACC_DARK_MIN  := 4;
-TRV_RATIO     := 1.1;
+TRV_RATIO     := 1.0;    {与主图一致；原1.1过松几乎恒真}
 PIT_N         := 12;
 SPR_BODY      := 0.5;
 CF_BODY       := 0.45;
@@ -223,6 +219,7 @@ HAM_MA        := 1.02;
 YDN_ATR       := 0.4;
 PRC_VOL       := 0.8;
 PRC_MA        := 1.03;
+SPARK_CD      := 5;      {右侧火花星号冷却：N根内只标一次}
 
 {================ 五、公共基础 ================}
 N_BAR  := BARSCOUNT(C);
@@ -256,14 +253,14 @@ PL1    := IF(N_BAR > 1, REF(L, 1), L);
 PREV_C := MAX(PC1, PRICE_MIN);
 PCT_CHG:= (C - PREV_C) / PREV_C * 100;
 FIRST_C:= VALUEWHEN(N_BAR = 1, C);
-TR_BASE:= MAX(MAX(H - L, ABS(H - PREV_C)), ABS(L - PREV_C));
 
-{ K线形态公共量（全文复用） }
 RNG_SAFE := MAX(H - L, EPS);
 B_BODY   := ABS(C - O);
 B_UP_SHD := H - MAX(C, O);
 B_DN_SHD := MIN(C, O) - L;
 BODY_PCT := (C - O) / RNG_SAFE;
+
+TR_BASE := MAX(MAX(H - L, ABS(H - PREV_C)), ABS(L - PREV_C));
 
 NET_CHG  := IF(N_BAR > ER_N, ABS(C - REF(C, ER_N)), ABS(C - FIRST_C));
 PATH_SUM := IF(N_BAR > ER_N, SUM(ABS(C - PC1), ER_N), SUM(ABS(C - PC1), 0));
@@ -310,7 +307,6 @@ SLF_TR_UP:= MA30 >= MA30_P1 OR C > MA30;
 C_BIAS_MA    := (C - MA8) / MAX(MA8, EPS);
 SZ_DOWN_COEF := IF(C_BIAS_MA > BIAS_TH, DN_COEF_UP, DN_COEF_NRM);
 
-{ 仅用本周期数据打分（原名 MULTI_RESO_OK 易误导，现更名 TREND_OK） }
 TREND_OWN := IF(MA8 > MA30, 35, 0)
           + IF(MA8 > MA8_P1, 25, IF(MA8 >= MA8_P1 * TREND_FLAT, 10, 0))
           + IF(MA30 > MA30_P1, 20, 0)
@@ -342,8 +338,10 @@ V_MAS_P1  := IF(N_BAR > 1, REF(V_MAS, 1), V_MAS);
 VOL_RATIO := V_PRED / MAX(V_MA_SAFE, EPS);
 V_UP_S    := V_PRED > V_MAS;
 
-{================ 七、量比方向资金引擎（SZ） ================}
-SZ_DIR := IF(C >= PREV_C, VOL_RATIO, -VOL_RATIO * SZ_DOWN_COEF);
+{================ 七、量比方向资金引擎 ================}
+EX_CAP  := MIN(VOL_RATIO, EX_RATIO_CAP);    { 前移：SZ_DIR 与暗流共用(与主图一致) }
+
+SZ_DIR := IF(C >= PREV_C, EX_CAP, -EX_CAP * SZ_DOWN_COEF);
 SZ_EA  := EMA(SZ_DIR, SZ_E1);
 SZ_EB  := EMA(SZ_DIR, SZ_E2);
 SZ_EC  := EMA(SZ_DIR, SZ_E3);
@@ -360,7 +358,6 @@ SZ_P1      := IF(N_BAR > 1, REF(SZ, 1), SZ);
 SZ_ACC_S := MA30_UP_30 OR (SZ > SZ_P1 AND SZ > SZ_ACC_MIN);
 SCALPEL  := V_SHRK AND SZ_ACC_S;
 
-EX_CAP  := MIN(VOL_RATIO, EX_RATIO_CAP);
 X_PDIR  := IF(C > PREV_C, 1, IF(C < PREV_C, -1, 0));
 X_FLOW  := IF(X_PDIR * IN_DIR < 0, FLOW_PEN, 1.0);
 X_RDARK := RL_DIR * (DARK_BASE + (1 - DARK_BASE) * EX_CAP) * X_FLOW;
@@ -399,7 +396,7 @@ M_QUIET := COUNT((SZ > 0 AND NOT(IS_EXPL_SUB)) OR SQZ_BAR, QUIET_WIN);
 M_FLY   := M_CF_TREND AND REF(M_QUIET >= QUIET_MIN, 1)
         AND SZ > 0 AND IS_EXPL_SUB AND M_DARK > FLY_DARK;
 
-{================ 八、副图成交额动量引擎（SZ_VAL） ================}
+{================ 八、成交额动量引擎 ================}
 AMT_MA      := IF(N_BAR >= VOL_DAYS, MA(AMT_PRED_RAW, VOL_DAYS), SUM(AMT_PRED_RAW, 0) / N_SAFE);
 AMT_MA_PRV  := IF(N_BAR > 1, REF(AMT_MA, 1), AMT_MA);
 AMT_MA_SAFE := MAX(AMT_MA, MAX(AMT_MA_PRV, AMT_PRED_RAW * AMT_FLOOR_R));
@@ -408,7 +405,7 @@ PCT_STD    := IF(N_BAR >= PCT_STD_N, STD(PCT_CHG, PCT_STD_N), 0);
 PCT_STD_PRV:= IF(N_BAR > 1, REF(PCT_STD, 1), 0);
 MAG_BASE   := MAX(MAG_FLOOR, PCT_STD_PRV);
 
-AMT_RATIO_RAW := AMT_PRED_RAW / MAX(AMT_MA_SAFE, EPS);   { 复用，原先重复计算两次 }
+AMT_RATIO_RAW := AMT_PRED_RAW / MAX(AMT_MA_SAFE, EPS);
 EXPL_RATIO := MIN(AMT_RATIO_RAW, EX_RATIO_CAP);
 EXPL_GAP   := EXPL_RATIO - EXPL_BASE;
 SAFE_EXP_IN:= MAX(-50, MIN(50, -SMOOTH_K * EXPL_GAP));
@@ -438,6 +435,22 @@ LEAD_FACTOR := LEAD_RAW * LEAD_RAW_W + LEAD_SMOOTH * (1 - LEAD_RAW_W);
 SZ_MA_VAL   := EMA(SZ_VAL + LEAD_FACTOR * LEAD_MIX, SZ_MA_LEN);
 SZ_GC       := CROSS(SZ_MA_VAL, 0);
 
+TMC_BASE_F := EMA(SZ_VAL, TMV_F);
+TMC_BASE_S := EMA(SZ_VAL, TMV_S);
+TMC_BASE   := W_ER * TMC_BASE_F + (1 - W_ER) * TMC_BASE_S;
+TMC_PRV    := IF(N_BAR > 1, REF(TMC_BASE, 1), TMC_BASE);
+TMC_D1     := (TMC_BASE - TMC_PRV) * TIME_DAMP;
+TMC_D1P    := IF(N_BAR > 1, REF(TMC_D1, 1), TMC_D1);
+TMC_D2     := TMC_D1 - TMC_D1P;
+
+TMC_LEAD_RAW := (TMC_D1 + TMC_D2 * TMC_D2W) * (TMC_GAIN * TMC_DAMP);
+TMC_LEAD_SM  := EMA(TMC_LEAD_RAW, TMC_LD_SM_LEN);
+TMC_LEAD_FAC := TMC_LEAD_RAW * TMC_RAW_W + TMC_LEAD_SM * (1 - TMC_RAW_W);
+TMC_OBSERVE  := EMA(TMC_BASE + TMC_LEAD_FAC, TMC_OUT_LEN);
+SZ_CROSS_DN  := CROSS(TMC_OBSERVE, SZ_MA_VAL);
+
+VOL_WEAK := AMT_PRED_RAW < AMT_MA_SAFE * VOLWEAK_R;
+
 {================ 九、主力吸筹、筹码锁定与 SPRING ================}
 LLV_BASE  := LLV(L, BASE_N);
 HH_BASE   := HHV(H, BASE_N);
@@ -452,13 +465,12 @@ BASE_UP_PCT := (C - LLV_BASE) / MAX(LLV_BASE, EPS) * 100;
 DARK_POS10  := SUM(M_DARK > 0, ACC_DARK_N);
 
 ACC_LOW_POS  := POS_60 < ACC_POS_MAX;
-ACC_FLAT_MA  := MA30_FLAT OR MA30_DOWN OR (MA30 > MA30_P1 AND MA30_DEGREE < 15);
+ACC_FLAT_MA  := NOT(MA30_UP_30);                 { 原三个子条件合并后恒等于 角度<ANG_UP }
 ACC_DARK_SUM := DARK_POS10 >= ACC_DARK_MIN;
 MAIN_ACCUM   := ACC_LOW_POS AND ACC_FLAT_MA AND ACC_DARK_SUM
-             AND SZ > -0.5 AND WARM_OK;
+              AND SZ > -0.5 AND WARM_OK;
 ACCUM_SIG    := MAIN_ACCUM AND NOT(REF(MAIN_ACCUM, 1));
 
-{ 用预测量，避免盘中末根被低估；CAPITAL=0 时走备用分支 }
 TRV_VAL   := IF(CAPITAL > 0, VOL_P / CAPITAL * 100, V_PRED / 1000000);
 TRV_MA5   := MA(TRV_VAL, 5);
 TRV_MA20  := MA(TRV_VAL, 20);
@@ -469,7 +481,7 @@ IS_PIT_DUG := REF(L, 1) < REF(LLV_PIT, 2)
             OR REF(L, 2) < REF(LLV_PIT, 3);
 SPRING_REV := IS_PIT_DUG AND C > O
             AND BODY_PCT > SPR_BODY
-            AND M_DARK > 0 AND V_UP_S;
+            AND M_DARK > 0 AND V_UP_S AND WARM_OK;
 
 {极阴挤压}
 SQZ_STD   := IF(N_BAR >= SQZ_N, STD(SZ_VAL, SQZ_N), 0);
@@ -493,20 +505,6 @@ ENERGY_RATIO := IF(SUM_DN < EPS,
                  IF(SUM_UP < EPS, 1, ENERGY_CAP),
                  MIN(MAX(SUM_UP / MAX(SUM_DN, EPS), ENERGY_MIN), ENERGY_CAP));
 
-TMC_BASE_F := EMA(SZ_VAL, TMV_F);
-TMC_BASE_S := EMA(SZ_VAL, TMV_S);
-TMC_BASE   := W_ER * TMC_BASE_F + (1 - W_ER) * TMC_BASE_S;
-TMC_PRV    := IF(N_BAR > 1, REF(TMC_BASE, 1), TMC_BASE);
-TMC_D1     := (TMC_BASE - TMC_PRV) * TIME_DAMP;
-TMC_D1P    := IF(N_BAR > 1, REF(TMC_D1, 1), TMC_D1);
-TMC_D2     := TMC_D1 - TMC_D1P;
-
-TMC_LEAD_RAW := (TMC_D1 + TMC_D2 * TMC_D2W) * (TMC_GAIN * TMC_DAMP);
-TMC_LEAD_FAC := TMC_LEAD_RAW * TMC_RAW_W
-              + EMA(TMC_LEAD_RAW, TMC_LD_SM_LEN) * (1 - TMC_RAW_W);
-TMC_OBSERVE  := EMA(TMC_BASE + TMC_LEAD_FAC, TMC_OUT_LEN);
-SZ_CROSS_DN  := CROSS(TMC_OBSERVE, SZ_MA_VAL);
-
 IS_EXPL     := AMT_PRED_RAW > AMT_MA_SAFE * EXPL_TH0;
 CF_TREND_OK := MA30_UP_30;
 Q_ARR       := IF((SZ_VAL > 0 AND NOT(IS_EXPL)) OR IS_SQZ_V, 1, 0);
@@ -518,23 +516,19 @@ CF_FLY_SIGNAL := CF_TREND_OK AND QUIET_PRV AND SZ_VAL > 0
 
 HAS_FLY     := SUM(CF_FLY_SIGNAL, 0) > 0;
 BARS_TO_FLY := IF(HAS_FLY, BARSLAST(CF_FLY_SIGNAL), 0);
-VOL_WEAK    := AMT_PRED_RAW < AMT_MA_SAFE * VOLWEAK_R;
 
 {================ 十、买入信号与衰竭埋伏判定 ================}
 BODY_SHRINK := B_BODY / RNG_SAFE < BODY_SH;
 LOW_VOL     := V_PRED < V_MAS * SHR_R OR V_PRED < V_MA_SAFE * LOWV_R;
 
-{ 量子底背离：取"前一个低点"当时的价格与SZ。此处 REF(,DIV_GAP) 才是真正的枢轴低点 }
+{量子底背离：修复——旧低点取 DIV_GAP 根之前那根K线的 L 与 SZ}
 PLOW_FLAG := L = LLV(L, DIV_N);
 OLD_FLAG  := REF(PLOW_FLAG, DIV_GAP);
-
-PLOW_OLD := VALUEWHEN(OLD_FLAG, REF(L, DIV_GAP));
-SZ_OLD   := VALUEWHEN(OLD_FLAG, REF(SZ, DIV_GAP));
-HAS_OLD  := PLOW_OLD > 0;
-
-OLD_AGE := IF(HAS_OLD, BARSLAST(OLD_FLAG) + DIV_GAP, DIV_GAP);
-DIV_BNC_OK := HHV(C, MIN(MAX(OLD_AGE, 1), DIV_MAXAGE)) - PLOW_OLD
-            > DIV_BOUNCE * ATR_SAFE;
+PLOW_OLD  := VALUEWHEN(OLD_FLAG, REF(L, DIV_GAP));
+SZ_OLD    := VALUEWHEN(OLD_FLAG, REF(SZ, DIV_GAP));
+HAS_OLD   := PLOW_OLD > 0;
+OLD_AGE   := IF(HAS_OLD, BARSLAST(OLD_FLAG) + DIV_GAP, DIV_GAP);
+DIV_BNC_OK:= HHV(C, MIN(MAX(OLD_AGE, 1), DIV_MAXAGE)) - PLOW_OLD > DIV_BOUNCE * ATR_SAFE;
 
 SZ_DIVERG := PLOW_FLAG AND HAS_OLD AND OLD_AGE <= DIV_MAXAGE
           AND L <= PLOW_OLD AND DIV_BNC_OK
@@ -559,7 +553,6 @@ P_STAGNANT  := PCT_CHG < TOP_CHG AND PCT_CHG > TOP_DROP
             AND B_UP_SHD > B_BODY
             AND B_UP_SHD / RNG_SAFE > TOP_SHADOW;
 IN_HIGH_POS := C > MA20C AND POS_60 > TOP_POS;
-{ 对齐主图：补上 TOP_DIVERG 分支，否则副图与主图的"多头衰竭"/买入过滤结果不一致 }
 TOP_DIVERG  := (C >= HH_RECENT) AND (M_DARK < M_DARK_P1) AND (V_PRED > V_MA_SAFE * TOPD_VOL);
 TOP_EXHAUST := (V_SURGE_TOP AND P_STAGNANT AND IN_HIGH_POS) OR (TOP_DIVERG AND IN_HIGH_POS);
 
@@ -619,13 +612,12 @@ FINAL_BUY := CORE_COND AND FLT_PASS AND GATE_OK AND WARM_OK
 SIG_STR := FINAL_BUY AND (TREND_ST OR ANG_VST_OK OR BREAK_POWER);
 SIG_NOR := FINAL_BUY AND NOT(SIG_STR);
 
-{ 出场原始条件（不依赖持仓状态，避免循环引用），同时用于再入场判定 }
 RAW_BRK := CROSS(MA8, C) OR C < MA8 * IF(ADX_STR, CR_ADX, CR_NRM);
 
 BUY_CAND    := SIG_STR OR SIG_NOR;
-BUY_CAND_P1 := IF(N_BAR > 1, REF(BUY_CAND, 1), 0);
+BUY_RECENT  := IF(N_BAR > 1, REF(COUNT(BUY_CAND, BUY_CD), 1) > 0, 0);
 REARM       := IF(REARM_ON = 1, REF(RAW_BRK, 1), 0);
-BUY_SIG     := BUY_CAND AND (NOT(BUY_CAND_P1) OR REARM);
+BUY_SIG     := BUY_CAND AND (NOT(BUY_RECENT) OR REARM);
 
 {================ 十一、棘轮止损与持仓状态 ================}
 HAS_BUY  := SUM(BUY_SIG, 0) > 0;
@@ -641,8 +633,7 @@ DYN_X := IF(MAX_GAIN > STR_GAIN_PCT OR ANG_VST_OK, TGT_STOP_MULT,
         IF(TREND_ST AND ADX_STR, ATR_XS, ATR_X)));
 
 TIGHT_LOCK := DYN_X <= TGT_STOP_MULT;
-
-RAW_TRAIL := HH_C_HOLD - DYN_X * ATR_SAFE;
+RAW_TRAIL  := HH_C_HOLD - DYN_X * ATR_SAFE;
 
 STOP_RATCHET := IF(RATCHET_FULL = 1, HHV(RAW_TRAIL, HOLD_LEN),
                IF(HOLD_LEN = 1, RAW_TRAIL,
@@ -677,15 +668,17 @@ CF_GATE_OK  := IF(CF_GATE = 1, GATE_OK, 1);
 CONFIRM_FLG := (REF(CF_SRC, 1) AND CONFIRM_BULL AND CONFIRM_VOL
              AND MOM_ACC_OK AND WARM_OK AND CF_GATE_OK AND MA_GOLD_STATE)
              OR SPRING_REV;
+SPARK_RAW   := CONFIRM_FLG AND NOT(SPRING_REV);
+SPARK_BAR   := SPARK_RAW AND REF(COUNT(SPARK_RAW, SPARK_CD), 1) = 0;   { 与主图一致的冷却 }
 
 {================ 十三、机会判定 ================}
 SEEK_OPP := NOT(HOLD_ST) AND GATE_OK AND WARM_OK
-         AND MA30_UP_30 AND CF_TREND_OK;
+         AND MA30_UP_30 AND M_CF_TREND;
 
 {================ 十四、副图柱体与三色动量线渲染 ================}
 TXT_OFF := MAX(0.08 * (HHV(ABS(SZ_VAL), 60) + EPS), EPS);
-TXT_UP  := MAX(0, SZ_VAL);     { 文字基准：柱顶 }
-TXT_DN  := MIN(0, SZ_VAL);     { 文字基准：柱底（负柱标注用） }
+TXT_UP  := MAX(0, SZ_VAL);
+TXT_DN  := MIN(0, SZ_VAL);
 
 AUTUMN_UP_BAR := IS_AUTUMN AND C >= O;
 AUTUMN_DN_BAR := IS_AUTUMN AND C < O;
@@ -711,21 +704,20 @@ DRAWTEXT(MARK_ON = 1 AND STRUCT_BTM_BUY, TXT_UP + TXT_OFF, '★MA30底拐头'), 
 STICKLINE(MARK_ON = 1 AND STRUCT_VCP_BUY, 0, SZ_VAL, 3, 0), COLORFF00FF;
 DRAWTEXT(MARK_ON = 1 AND STRUCT_VCP_BUY, TXT_UP + TXT_OFF * 1.8, '★VCP引爆'), COLORFF00FF;
 
-DRAWTEXT(MARK_ON = 1 AND CONFIRM_FLG AND NOT(SPRING_REV), TXT_UP + TXT_OFF * 0.5, '★'), COLOR00FF88;
+DRAWTEXT(MARK_ON = 1 AND SPARK_BAR, TXT_UP + TXT_OFF * 0.5, '★'), COLOR00FF88;
 
 STICKLINE(MARK_ON = 1 AND SPRING_REV, 0, SZ_VAL, 3, 0), COLOR00FF88;
 DRAWTEXT(MARK_ON = 1 AND SPRING_REV, TXT_UP + TXT_OFF * 2.0, '★SPRING反包'), COLOR00FF88;
 
-{ 起爆信号三层叠色，视觉上是"外蓝-中黄-内白"的发光柱 }
-STICKLINE(MARK_ON = 1 AND CF_FLY_SIGNAL, 0, SZ_VAL, 3, 0), COLOR0088FF;
-STICKLINE(MARK_ON = 1 AND CF_FLY_SIGNAL, 0, SZ_VAL, 2, 0), COLOR00FFFF;
-STICKLINE(MARK_ON = 1 AND CF_FLY_SIGNAL, 0, SZ_VAL, 1, 0), COLORFFFFFF;
+{ 点火能量柱三层叠色 }
+STICKLINE(MARK_ON = 1 AND (CF_FLY_SIGNAL OR SQZ_FIRE), 0, SZ_VAL, 3, 0), COLOR00CCFF;
+STICKLINE(MARK_ON = 1 AND (CF_FLY_SIGNAL OR SQZ_FIRE), 0, SZ_VAL, 2, 0), COLOR00FFFF;
+STICKLINE(MARK_ON = 1 AND (CF_FLY_SIGNAL OR SQZ_FIRE), 0, SZ_VAL, 1, 0), COLORFFFFFF;
 
-{ 新增：ACCUM_SIG 原先只计算不使用，现在在负柱下方标注 }
 DRAWTEXT(MARK_ON = 1 AND ACCUM_SIG, TXT_DN - TXT_OFF, '⊕吸筹'), COLORFF9900;
 
-STICKLINE(SZ_GC, 0, SZ_VAL, 3, 0), COLOR00D7FF;
-DRAWTEXT(SZ_GC, TXT_UP + TXT_OFF * 0.8, '★上穿'), COLOR00D7FF;
+STICKLINE(GC_MARK = 1 AND SZ_GC, 0, SZ_VAL, 3, 0), COLOR00D7FF;
+DRAWTEXT(GC_MARK = 1 AND SZ_GC, TXT_UP + TXT_OFF * 0.8, '★上穿'), COLOR00D7FF;
 
 {================ 十五、副图 MA30 斜率三色动量线 ================}
 MA30_DN_LINE: IF(MA30_DOWN OR REF(MA30_DOWN, 1), SZ_MA_VAL, DRAWNULL), COLOR888888, DOTLINE;
@@ -745,14 +737,14 @@ GATE_OK_ST    := GATE_OK AND WARM_OK;
 DRAWTEXT_FIX(IS_LAST, 0.01, 0.01, 0, '【多空能量比】'), COLOR00CCFF;
 DRAWNUMBER_FIX(IS_LAST, 0.09, 0.01, 0, ENERGY_RATIO), COLOR00FFFF;
 
-DRAWTEXT_FIX(IS_LAST, 0.16, 0.01, 0, '【MA30角度】'), COLOR00CCFF;
-DRAWNUMBER_FIX(IS_LAST AND MA30_DOWN, 0.245, 0.01, 0, MA30_DEGREE), COLOR777777;
-DRAWNUMBER_FIX(IS_LAST AND MA30_FLAT, 0.245, 0.01, 0, MA30_DEGREE), COLORFFFFFF;
-DRAWNUMBER_FIX(IS_LAST AND MA30_UP_30, 0.245, 0.01, 0, MA30_DEGREE), COLOR00FF00;
+DRAWTEXT_FIX(IS_LAST, 0.75, 0.01, 0, '【MA30角度】'), COLOR00CCFF;
+DRAWNUMBER_FIX(IS_LAST AND MA30_DOWN, 0.835, 0.01, 0, MA30_DEGREE), COLOR777777;
+DRAWNUMBER_FIX(IS_LAST AND MA30_FLAT, 0.835, 0.01, 0, MA30_DEGREE), COLORFFFFFF;
+DRAWNUMBER_FIX(IS_LAST AND MA30_UP_30, 0.835, 0.01, 0, MA30_DEGREE), COLOR00FF00;
 
-DRAWTEXT_FIX(IS_LAST AND MA30_DOWN, 0.31, 0.01, 0, '[下降]'), COLOR777777;
-DRAWTEXT_FIX(IS_LAST AND MA30_FLAT, 0.31, 0.01, 0, '[震荡盘整]'), COLORFFFFFF;
-DRAWTEXT_FIX(IS_LAST AND MA30_UP_30, 0.31, 0.01, 0, '[上升]'), COLOR00FF00;
+DRAWTEXT_FIX(IS_LAST AND MA30_DOWN, 0.90, 0.01, 0, '[下降]'), COLOR777777;
+DRAWTEXT_FIX(IS_LAST AND MA30_FLAT, 0.90, 0.01, 0, '[震荡盘整]'), COLORFFFFFF;
+DRAWTEXT_FIX(IS_LAST AND MA30_UP_30, 0.90, 0.01, 0, '[上升]'), COLOR00FF00;
 
 DRAWTEXT_FIX(IS_LAST, 0.01, 0.78, 0, '【ALERT】'), COLOR00CCFF;
 DRAWTEXT_FIX(IS_LAST AND TOP_EXHAUST, 0.06, 0.78, 0, '多方能量衰竭'), COLORFF007F;
@@ -768,7 +760,6 @@ DRAWTEXT_FIX(IS_LAST AND SEEK_OPP, 0.06, 0.85, 0, '少阴·寻机'), COLOR00FF88
 DRAWTEXT_FIX(IS_LAST AND NOT(SEEK_OPP) AND HOLD_ST, 0.06, 0.85, 0, '持仓中'), COLOR00FFFF;
 DRAWTEXT_FIX(IS_LAST AND NOT(SEEK_OPP) AND NOT(HOLD_ST), 0.06, 0.85, 0, '观望'), COLOR555555;
 
-{ 已调整：暗流保持在最右侧边缘 (0.87 / 0.94) }
 DRAWTEXT_FIX(IS_LAST, 0.91, 0.99, 0, '【暗流】'), COLOR00CCFF;
 DRAWNUMBER_FIX(IS_LAST, 0.94, 0.99, 0, M_DARK), COLOR00FFFF;
 
@@ -781,12 +772,10 @@ DRAWTEXT_FIX(IS_LAST AND SQZ_FIRE, 0.21, 0.97, 0, '【冬至火花·点火】'),
 DRAWTEXT_FIX(IS_LAST AND IS_SQZ_V AND NOT(SQZ_FIRE), 0.21, 0.97, 0, '【极阴挤压·蓄势】'), COLOR00FFFF;
 DRAWTEXT_FIX(IS_LAST AND NOT(IS_SQZ_V), 0.21, 0.97, 0, '【气数平稳】'), COLOR555555;
 
-{ 已调整：门控状态左移至 0.77，与暗流拉开安全距离 }
 DRAWTEXT_FIX(IS_LAST AND GATE_NOT_PASS, 0.85, 0.97, 0, '[门控: 锁定]'), COLORFF2222;
 DRAWTEXT_FIX(IS_LAST AND GATE_WAIT_ST,  0.85, 0.97, 0, '[门控: 暖机]'), COLOR00FFFF;
 DRAWTEXT_FIX(IS_LAST AND GATE_OK_ST,    0.85, 0.97, 0, '[门控: 激活]'), COLOR00FF88;
 
-{--- 调试(DBG_PRD=1 开启):确认周期编号与日线/分钟判定 ---}
 DRAWTEXT_FIX(IS_LAST AND DBG_PRD = 1, 0.50, 0.99, 0, 'PERIOD='), COLOR888888;
 DRAWNUMBER_FIX(IS_LAST AND DBG_PRD = 1, 0.55, 0.99, 0, PERIOD), COLOR888888;
 DRAWTEXT_FIX(IS_LAST AND DBG_PRD = 1 AND IS_DAY_BAR, 0.58, 0.99, 0, '[日线]'), COLOR888888;
